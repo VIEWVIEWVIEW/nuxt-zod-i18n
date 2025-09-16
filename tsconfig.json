@@ -1,9 +1,16 @@
 {
+  "compilerOptions": {
+    "lib": ["ESNext"],
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "target": "ESNext",
+    "types": ["node"]
+  },
   "exclude": [
     "dist",
+    "docs",
     "node_modules",
-    "playground",
-    "docs"
-  ],
-  "extends": "./.nuxt/tsconfig.json"
+    "playground"
+  ]
 }
+

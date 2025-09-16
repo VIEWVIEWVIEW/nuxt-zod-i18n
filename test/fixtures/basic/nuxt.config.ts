@@ -1,7 +1,7 @@
 import MyModule from '../../../src/module'
 
 export default defineNuxtConfig({
-  modules: [MyModule, '@nuxtjs/i18n'],
+  modules: ['@nuxtjs/i18n', MyModule],
   i18n: {
     defaultDirection: 'ltr',
     defaultLocale: 'en-GB',

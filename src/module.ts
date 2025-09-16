@@ -2,6 +2,7 @@ import { readdir } from 'node:fs/promises'
 import { defu } from 'defu'
 import {
   addPlugin,
+  addServerPlugin,
   createResolver,
   defineNuxtModule,
   useLogger,
@@ -112,6 +113,29 @@ export default defineNuxtModule<ModuleOptions>().with({
     )
 
     // Do not add the extension since the `.ts` will be transpiled to `.mjs` after `npm run prepack`
+    const serverPluginPath = resolve('./runtime/server-plugin')
+
     addPlugin(resolve('./runtime/plugin'))
+    addServerPlugin(serverPluginPath)
+
+    nuxt.hook('modules:done', () => {
+      const plugins = nuxt.options.nitro.plugins
+      if (Array.isArray(plugins)) {
+        const index = plugins.findIndex((plugin) => {
+          if (typeof plugin === 'string') {
+            return plugin === serverPluginPath
+          }
+          if (plugin && typeof plugin === 'object' && 'src' in plugin) {
+            return plugin.src === serverPluginPath
+          }
+          return false
+        })
+
+        if (index !== -1) {
+          const [plugin] = plugins.splice(index, 1)
+          plugins.push(plugin)
+        }
+      }
+    })
   },
 })
