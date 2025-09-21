@@ -30,7 +30,7 @@ Check the playground for usage doc and test will come later
 npx nuxi@latest module add nuxt-zod-i18n
 ```
 
-2. Add `nuxt-zod-i18n` to the `modules` section of `nuxt.config.ts` before `@nuxtjs/i18n` module
+2. Add `nuxt-zod-i18n` to the `modules` section of `nuxt.config.ts` before the `@nuxtjs/i18n` module so the translated error map can reuse its composer instance.
 
 ```js
 export default defineNuxtConfig({
@@ -39,6 +39,55 @@ export default defineNuxtConfig({
 ```
 
 That's it! You can now use Nuxt ZodI18n in your Nuxt app ✨
+
+## Usage
+
+Once the module is registered, it ships a Nuxt plugin and a Nitro server plugin that keep Zod's global error map in sync with the active i18n composer. You can keep using a single set of schemas on both the client and server without any manual bootstrapping.
+
+### Client-side validation
+
+No extra setup is needed. Any Zod errors surfaced through your forms will use the current locale automatically:
+
+```ts
+const result = registrationSchema.safeParse(formData)
+
+if (!result.success) {
+  errors.value = result.error.format()
+}
+```
+
+### Server API routes
+
+The bundled Nitro plugin attaches to every request and reapplies the error map after i18n chooses the locale, so `safeParse` and helpers such as `readValidatedBody` return translated messages out of the box.
+
+```ts
+// server/api/register.post.ts
+import { createError, readValidatedBody } from 'h3'
+import { useTranslation } from '#imports'
+import { registrationSchema } from '~/lib/schemas'
+
+export default defineEventHandler(async (event) => {
+  const t = await useTranslation(event)
+
+  const result = await readValidatedBody(event, (body) =>
+    registrationSchema.safeParse(body),
+  )
+
+  if (!result.success) {
+    throw createError({
+      statusCode: 422,
+      data: result.error.flatten().fieldErrors,
+      statusMessage: result.error.errors[0]?.message,
+    })
+  }
+
+  return {
+    success: t('registrationSuccessful'),
+  }
+})
+```
+
+With the module installed there is no need to duplicate schemas or call any Zod-specific APIs inside your route handlers—the translated messages are available as soon as you read or parse the request body.
 
 ## Development
 
