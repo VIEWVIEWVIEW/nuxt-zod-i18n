@@ -46,7 +46,7 @@
   "dependencies": {
     "@nuxt/kit": "^3.17.7",
     "defu": "^6.1.4",
-    "zod": "^3.25.76"
+    "zod": "^4.1.12"
   },
   "devDependencies": {
     "@localazy/cli": "^2.0.8",

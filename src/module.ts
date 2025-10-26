@@ -1,26 +1,21 @@
-import { readdir } from 'node:fs/promises'
 import { defu } from 'defu'
 import {
   addPlugin,
+  addImports,
   createResolver,
   defineNuxtModule,
   useLogger,
 } from '@nuxt/kit'
-import type { NuxtI18nOptions, LocaleObject } from '@nuxtjs/i18n'
-import { getNormalizedLocales } from './utils'
 
 // Module options TypeScript interface definition
 export interface ModuleOptions {
-  useModuleLocale: boolean
   dateFormat: Intl.DateTimeFormatOptions
-  localeCodesMapping?: Record<string, string>
 }
 
 declare module '@nuxt/schema' {
   interface PublicRuntimeConfig {
     zodI18n: {
       dateFormat: Intl.DateTimeFormatOptions
-      localeCodesMapping: Record<string, string>
     }
   }
 }
@@ -35,7 +30,6 @@ export default defineNuxtModule<ModuleOptions>().with({
   },
   // Default configuration options of the Nuxt module
   defaults: {
-    useModuleLocale: true,
     dateFormat: {
       day: 'numeric',
       month: 'long',
@@ -46,25 +40,16 @@ export default defineNuxtModule<ModuleOptions>().with({
     const { resolve } = createResolver(import.meta.url)
     const logger = useLogger('zodI18n')
 
-    let i18nOptions: NuxtI18nOptions | null = null
-
     // Check NuxtI18n module availability
     const checkI18nAvailable = !nuxt.options.modules.some((module) => {
       const i18nModuleNames = ['@nuxtjs/i18n', '@nuxtjs/i18n-edge']
       if (typeof module === 'string') {
         const isRegistered = i18nModuleNames.includes(module)
-        if (isRegistered) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          i18nOptions = (nuxt.options as any).i18n
-        }
         return isRegistered
       }
       if (Array.isArray(module)) {
-        const [moduleName, options] = module
+        const [moduleName] = module
         const isRegistered = i18nModuleNames.includes(moduleName as string)
-        if (isRegistered) {
-          i18nOptions = options
-        }
         return isRegistered
       }
 
@@ -75,41 +60,14 @@ export default defineNuxtModule<ModuleOptions>().with({
       logger.fatal('Nuxt I18n required')
     }
 
-    if (options.useModuleLocale) {
-      const appLocalesCode = getNormalizedLocales(
-        i18nOptions && (i18nOptions as NuxtI18nOptions)?.locales
-          ? (i18nOptions as NuxtI18nOptions).locales
-          : [],
-      ).map(({ code }) => code)
-
-      const languageFiles = await readdir(resolve('./runtime/i18n/locales'))
-
-      const locales = languageFiles.reduce<LocaleObject[]>((acc, file) => {
-        const code
-          = options.localeCodesMapping?.[file.replace('.json', '')]
-            || file.replace('.json', '')
-        if (appLocalesCode.includes(code)) {
-          acc.push({ file, code })
-        }
-
-        return acc
-      }, [])
-
-      nuxt.hook('i18n:registerModule', (register) => {
-        register({
-          langDir: resolve('./runtime/i18n/locales'),
-          locales,
-        })
-      })
-    }
-
     nuxt.options.runtimeConfig.public.zodI18n = defu(
       nuxt.options.runtimeConfig.public.zodI18n,
       {
         dateFormat: options.dateFormat as Intl.DateTimeFormatOptions,
-        localeCodesMapping: options.localeCodesMapping,
       },
     )
+
+    addImports({ name: 'applyZodLocale', from: resolve('./runtime/locale') })
 
     // Do not add the extension since the `.ts` will be transpiled to `.mjs` after `npm run prepack`
     addPlugin(resolve('./runtime/plugin'))

@@ -86,7 +86,7 @@ Translate zod error message easily
   ---
   icon: i-simple-icons-googletranslate
   target: _blank
-  to: https://github.com/xibman/nuxt-zod-i18n/tree/main/src/runtime/i18n/locales
+  to: https://github.com/colinhacks/zod/tree/master/src/v4/locales
   ---
   #title
   i18n
